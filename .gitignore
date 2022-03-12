@@ -1,0 +1,9 @@
+auth.json
+gcloud.json
+config.json
+*.mp3
+sounds
+token.txt
+bin/
+.vs/
+obj/
