@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Discord.Commands;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,12 @@ using System.Threading.Tasks;
 
 namespace DiscordTTS.Commands
 {
-    public class PlaySoundsCommands : ICommands 
+    [Group("PlaySounds")]
+    public class PlaySoundsCommands : ModuleBase<SocketCommandContext>
     {
+        public Task<RuntimeResult> Execute()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

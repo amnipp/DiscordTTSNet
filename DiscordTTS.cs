@@ -12,32 +12,35 @@ namespace DiscordTTS
     {
 		public static Task Main(string[] args) => new DiscordTTS().MainAsync();
 
-        private DiscordSocketClient _client;
-
+        private List<User> _users;
+        private Settings _settings;
         public async Task MainAsync()
         {
-            _client = new DiscordSocketClient();
-
-            _client.Log += Log;
-
+            LoadSavedSettings();
+            string jsonString = "";
             // Read in JSON config
-            StreamReader r = new StreamReader("config.json");
-            string jsonString = r.ReadToEnd();
+            using (StreamReader r = new StreamReader("config.json"))
+                jsonString = r.ReadToEnd();
             // TODO: store these into settings 
             var config = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
 
             var token = config["token"];
 
-            await _client.LoginAsync(TokenType.Bot, token);
-            await _client.StartAsync();
+            DiscordBot bot = new DiscordBot(_settings, _users);
+            await bot.CreateBotAsync(token);
 
             // Block this task until the program is closed.
             await Task.Delay(-1);
         }
-        private Task Log(LogMessage msg)
-		{
-			Console.WriteLine(msg.ToString());
-			return Task.CompletedTask;
-		}
+
+        // TODO: Load settings from file
+        private void LoadSavedSettings()
+        {
+            _settings = new Settings('-');
+            _users = new List<User>();
+            //temp: create a user in code
+            _users.Add(new User("164948299265081344", true));
+        }
+
 	}
 }
