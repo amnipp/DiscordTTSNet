@@ -1,71 +1,83 @@
-﻿using Discord;
-using Discord.Commands;
+using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using DiscordTTS.Services;
 
-namespace DiscordTTS
+namespace NamazuTTS
 {
-    // This is a minimal example of using Discord.Net's command
-    // framework - by no means does it show everything the framework
-    // is capable of.
-    //
-    // You can find samples of using the command framework:
-    // - Here, under the 02_commands_framework sample
-    // - https://github.com/foxbot/DiscordBotBase - a bare-bones bot template
-    // - https://github.com/foxbot/patek - a more feature-filled bot, utilizing more aspects of the library
     class Program
     {
-        // There is no need to implement IDisposable like before as we are
-        // using dependency injection, which handles calling Dispose for us.
-        static void Main(string[] args)
-            => new Program().MainAsync().GetAwaiter().GetResult();
-
-        public async Task MainAsync()
+        // Entry point of the program.
+        static void Main ( string[] args )
         {
-            // You should dispose a service provider created using ASP.NET
-            // when you are finished using it, at the end of your app's lifetime.
-            // If you use another dependency injection framework, you should inspect
-            // its documentation for the best way to do this.
-            using (var services = ConfigureServices())
-            {
-                var client = services.GetRequiredService<DiscordSocketClient>();
+            // One of the more flexable ways to access the configuration data is to use the Microsoft's Configuration model,
+            // this way we can avoid hard coding the environment secrets. I opted to use the Json and environment variable providers here.
+            IConfiguration config = new ConfigurationBuilder()
+                .AddEnvironmentVariables(prefix: "DC_")
+                .AddJsonFile("appsettings.json", optional: true)
+                .Build();
 
-                client.Log += LogAsync;
-                services.GetRequiredService<CommandService>().Log += LogAsync;
-
-                // Tokens should be considered secret data and never hard-coded.
-                // We can read from the environment variable to avoid hard coding.
-                await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("token"));
-                await client.StartAsync();
-
-                // Here we initialize the logic required to register our commands.
-                await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
-
-                await Task.Delay(Timeout.Infinite);
-            }
+            RunAsync(config).GetAwaiter().GetResult();
         }
 
-        private Task LogAsync(LogMessage log)
+        static async Task RunAsync (IConfiguration configuration)
         {
-            Console.WriteLine(log.ToString());
+            // Dependency injection is a key part of the Interactions framework but it needs to be disposed at the end of the app's lifetime.
+            using var services = ConfigureServices(configuration);
 
+            var client = services.GetRequiredService<DiscordSocketClient>();
+            var commands = services.GetRequiredService<InteractionService>();
+
+            client.Log += LogAsync;
+            commands.Log += LogAsync;
+
+            // Slash Commands and Context Commands are can be automatically registered, but this process needs to happen after the client enters the READY state.
+            // Since Global Commands take around 1 hour to register, we should use a test guild to instantly update and test our commands. To determine the method we should
+            // register the commands with, we can check whether we are in a DEBUG environment and if we are, we can register the commands to a predetermined test guild.
+            client.Ready += async ( ) =>
+            {
+                if (IsDebug())
+                    // Id of the test guild can be provided from the Configuration object
+                    await commands.RegisterCommandsToGuildAsync(configuration.GetValue<ulong>("testGuild"), true);
+                else
+                    await commands.RegisterCommandsGloballyAsync(true);
+            };
+
+            // Here we can initialize the service that will register and execute our commands
+            await services.GetRequiredService<CommandHandler>().InitializeAsync();
+
+            // Bot token can be provided from the Configuration object we set up earlier
+            await client.LoginAsync(TokenType.Bot, configuration["token"]);
+            await client.StartAsync();
+
+            await Task.Delay(Timeout.Infinite);
+        }
+
+        static Task LogAsync(LogMessage message)
+        {
+            Console.WriteLine(message.ToString());
             return Task.CompletedTask;
         }
 
-        private ServiceProvider ConfigureServices()
-        {
-            return new ServiceCollection()
+        static ServiceProvider ConfigureServices ( IConfiguration configuration )
+            => new ServiceCollection()
+                .AddSingleton(configuration)
                 .AddSingleton<DiscordSocketClient>()
-                .AddSingleton<CommandService>()
-                .AddSingleton<CommandHandlingService>()
-                .AddSingleton<HttpClient>()
+                .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+                .AddSingleton<CommandHandler>()
                 .BuildServiceProvider();
+
+        static bool IsDebug ( )
+        {
+            #if DEBUG
+                return true;
+            #else
+                return false;
+            #endif
         }
     }
 }

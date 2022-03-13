@@ -8,3 +8,5 @@ bin/
 .vs/
 obj/
 appsettings.json
+bin/
+bin_old/
