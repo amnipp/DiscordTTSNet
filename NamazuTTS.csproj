@@ -8,11 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="CommandHandlerOldd.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appsettings.json" />
     <None Remove="ffmpeg.exe" />
     <None Remove="gcloud.json" />
     <None Remove="libopus.dll" />
     <None Remove="libsodium.dll" />
+    <None Remove="opus.dll" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,11 +27,14 @@
     <PackageReference Include="Discord.Net.Rest" Version="3.4.1" />
     <PackageReference Include="Discord.Net.Webhook" Version="3.4.1" />
     <PackageReference Include="Discord.Net.WebSocket" Version="3.4.1" />
+    <PackageReference Include="Google.Cloud.TextToSpeech.V1" Version="2.4.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+    <PackageReference Include="Victoria" Version="5.2.7" />
   </ItemGroup>
 
 </Project>

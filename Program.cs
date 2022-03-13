@@ -1,4 +1,6 @@
 using Discord;
+using Discord.Audio;
+using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
@@ -6,6 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Victoria;
+using Google.Cloud.TextToSpeech;
+using Google.Apis.Services;
+using System.Collections.Generic;
 
 namespace NamazuTTS
 {
@@ -31,10 +37,11 @@ namespace NamazuTTS
 
             var client = services.GetRequiredService<DiscordSocketClient>();
             var commands = services.GetRequiredService<InteractionService>();
-
+            var lavaNode = services.GetRequiredService<LavaNode>();
+            lavaNode.OnLog += LavaNode_OnLog;
             client.Log += LogAsync;
             commands.Log += LogAsync;
-
+            
             // Slash Commands and Context Commands are can be automatically registered, but this process needs to happen after the client enters the READY state.
             // Since Global Commands take around 1 hour to register, we should use a test guild to instantly update and test our commands. To determine the method we should
             // register the commands with, we can check whether we are in a DEBUG environment and if we are, we can register the commands to a predetermined test guild.
@@ -45,10 +52,15 @@ namespace NamazuTTS
                     await commands.RegisterCommandsToGuildAsync(configuration.GetValue<ulong>("testGuild"), true);
                 else
                     await commands.RegisterCommandsGloballyAsync(true);
+                if (!lavaNode.IsConnected)
+                {
+                    await lavaNode.ConnectAsync();
+                    Console.WriteLine(lavaNode.IsConnected);
+                }
             };
 
             // Here we can initialize the service that will register and execute our commands
-            await services.GetRequiredService<CommandHandler>().InitializeAsync();
+            await services.GetRequiredService<CommandHandler>().InstallCommandsAsync();
 
             // Bot token can be provided from the Configuration object we set up earlier
             await client.LoginAsync(TokenType.Bot, configuration["token"]);
@@ -57,18 +69,30 @@ namespace NamazuTTS
             await Task.Delay(Timeout.Infinite);
         }
 
+        private static Task LavaNode_OnLog(LogMessage arg)
+        {
+            Console.WriteLine(arg.Message);
+            return Task.CompletedTask;
+        }
+
         static Task LogAsync(LogMessage message)
         {
             Console.WriteLine(message.ToString());
             return Task.CompletedTask;
         }
 
-        static ServiceProvider ConfigureServices ( IConfiguration configuration )
+        static ServiceProvider ConfigureServices(IConfiguration configuration)
             => new ServiceCollection()
                 .AddSingleton(configuration)
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+                .AddSingleton(new CommandService())
                 .AddSingleton<CommandHandler>()
+                .AddSingleton<InteractionService>()
+                .AddSingleton<Settings>()
+                .AddSingleton<List<User>>()
+                .AddSingleton<LavaConfig>()
+                .AddSingleton(x => new LavaNode(x.GetRequiredService<DiscordSocketClient>(), x.GetRequiredService<LavaConfig>()))
                 .BuildServiceProvider();
 
         static bool IsDebug ( )

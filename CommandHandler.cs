@@ -1,152 +1,97 @@
-using Discord;
+﻿using Discord;
+using Discord.Commands;
+using Discord.Commands.Builders;
 using Discord.Interactions;
 using Discord.WebSocket;
+using NamazuTTS.Modules;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Victoria;
 
 namespace NamazuTTS
 {
     public class CommandHandler
     {
         private readonly DiscordSocketClient _client;
-        private readonly InteractionService _commands;
+        private readonly CommandService _commands;
         private readonly IServiceProvider _services;
+        private readonly Settings _settings;
+        private readonly List<User> _users;
 
-        public CommandHandler(DiscordSocketClient client, InteractionService commands, IServiceProvider services)
+        private readonly LavaNode _lava;
+        // Retrieve client and CommandService instance via ctor
+        public CommandHandler(DiscordSocketClient client, CommandService commands, IServiceProvider services, Settings settings, List<User> users, LavaNode node)
         {
-            _client = client;
             _commands = commands;
+            _client = client;
             _services = services;
+            _settings = settings;
+            _users = users;
+            _lava = node;
         }
 
-        public async Task InitializeAsync ( )
+        public async Task InstallCommandsAsync()
         {
-            // Add the public modules that inherit InteractionModuleBase<T> to the InteractionService
+            // Hook the MessageReceived event into our command handler
+            _client.MessageReceived += HandleCommandAsync;
+
+            // Here we discover all of the command modules in the entry 
+            // assembly and load them. Starting from Discord.NET 2.0, a
+            // service provider is required to be passed into the
+            // module registration method to inject the 
+            // required dependencies.
+            //
+            // If you do not use Dependency Injection, pass null.
+            // See Dependency Injection guide for more information.
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
-            // Another approach to get the assembly of a specific type is:
-            // typeof(CommandHandler).Assembly
-
-
-            // Process the InteractionCreated payloads to execute Interactions commands
-            _client.InteractionCreated += HandleInteraction;
-
-            // Process the command execution results 
-            _commands.SlashCommandExecuted += SlashCommandExecuted;
-            _commands.ContextCommandExecuted += ContextCommandExecuted;
-            _commands.ComponentCommandExecuted += ComponentCommandExecuted;
         }
 
-        # region Error Handling
-
-        private Task ComponentCommandExecuted (ComponentCommandInfo arg1, Discord.IInteractionContext arg2, IResult arg3)
+        private async Task HandleCommandAsync(SocketMessage messageParam)
         {
-            if (!arg3.IsSuccess)
+            Console.WriteLine(messageParam);
+            // Don't process the command if it was a system message
+            var message = messageParam as SocketUserMessage;
+            if (message == null) return;
+
+            // Create a number to track where the prefix ends and the command begins
+            int argPos = 0;
+            /*if(message.HasCharPrefix(_settings.Prefix, ref argPos) &&
+                _users.Where(x => x.DiscordID == message.Author.Id).FirstOrDefault() != null)
             {
-                switch (arg3.Error)
+                var user = _users.Where(x => x.DiscordID == message.Author.Id).FirstOrDefault();
+                if (user.TTSEnable)
                 {
-                    case InteractionCommandError.UnmetPrecondition:
-                        // implement
-                        break;
-                    case InteractionCommandError.UnknownCommand:
-                        // implement
-                        break;
-                    case InteractionCommandError.BadArgs:
-                        // implement
-                        break;
-                    case InteractionCommandError.Exception:
-                        // implement
-                        break;
-                    case InteractionCommandError.Unsuccessful:
-                        // implement
-                        break;
-                    default:
-                        break;
+                    message = new SocketUserMessage();
                 }
-            }    
+            }*/
+            User foundUser = null;
+            if(_users.Count > 0)
+                foundUser = _users.Where(x => x.DiscordID == message.Author.Id).First();
+                    // Determine if the message is a command based on the prefix and make sure no bots trigger commands
+            if ((foundUser == null && 
+                !(message.HasCharPrefix(_settings.Prefix, ref argPos) ||
+                message.HasMentionPrefix(_client.CurrentUser, ref argPos))) ||
+                message.Author.IsBot)
+                return;
 
-            return Task.CompletedTask;
-        }
-
-        private Task ContextCommandExecuted (ContextCommandInfo arg1, Discord.IInteractionContext arg2, IResult arg3)
-        {
-            if (!arg3.IsSuccess)
+            // Create a WebSocket-based command context based on the message
+            var context = new SocketCommandContext(_client, message);
+            if (foundUser != null && !message.HasCharPrefix(_settings.Prefix, ref argPos))
             {
-                switch (arg3.Error)
-                {
-                    case InteractionCommandError.UnmetPrecondition:
-                        // implement
-                        break;
-                    case InteractionCommandError.UnknownCommand:
-                        // implement
-                        break;
-                    case InteractionCommandError.BadArgs:
-                        // implement
-                        break;
-                    case InteractionCommandError.Exception:
-                        // implement
-                        break;
-                    case InteractionCommandError.Unsuccessful:
-                        // implement
-                        break;
-                    default:
-                        break;
-                }
+                //stupid hack from a stupid guy :)
+                TTSModule tts = new(_settings, _lava, _users);
+                await tts.FakeTTS( message.Content);
             }
-
-            return Task.CompletedTask;
+            else
+                // Execute the command with the command context we just
+                // created, along with the service provider for precondition checks.
+                await _commands.ExecuteAsync(
+                    context: context,
+                    argPos: argPos,
+                    services: _services);
         }
-
-        private Task SlashCommandExecuted (SlashCommandInfo arg1, Discord.IInteractionContext arg2, IResult arg3)
-        {
-            if (!arg3.IsSuccess)
-            {
-                switch (arg3.Error)
-                {
-                    case InteractionCommandError.UnmetPrecondition:
-                        // implement
-                        break;
-                    case InteractionCommandError.UnknownCommand:
-                        // implement
-                        break;
-                    case InteractionCommandError.BadArgs:
-                        // implement
-                        break;
-                    case InteractionCommandError.Exception:
-                        // implement
-                        break;
-                    case InteractionCommandError.Unsuccessful:
-                        // implement
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            return Task.CompletedTask;
-        }
-        # endregion
-
-        # region Execution
-
-        private async Task HandleInteraction (SocketInteraction arg)
-        {
-            try
-            {
-                // Create an execution context that matches the generic type parameter of your InteractionModuleBase<T> modules
-                var ctx = new SocketInteractionContext(_client, arg);
-                await _commands.ExecuteCommandAsync(ctx, _services);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-
-                // If a Slash Command execution fails it is most likely that the original interaction acknowledgement will persist. It is a good idea to delete the original
-                // response, or at least let the user know that something went wrong during the command execution.
-                if(arg.Type == InteractionType.ApplicationCommand)
-                    await arg.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());
-            }
-        }
-        # endregion
     }
 }
