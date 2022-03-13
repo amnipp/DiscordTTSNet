@@ -7,3 +7,4 @@ token.txt
 bin/
 .vs/
 obj/
+appsettings.json

@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.32228.343
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordTTS", "DiscordTTS.csproj", "{A1447100-97ED-4C2F-B64E-98E6AC2FAE7D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NamazuTTS", "..\NamazuTTS\NamazuTTS.csproj", "{F8C70BC6-AF61-44B6-AB5E-1876771A6531}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NamazuTTS", "NamazuTTS\NamazuTTS.csproj", "{BC5D19CE-C50E-4FA1-B592-136555B73634}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{A1447100-97ED-4C2F-B64E-98E6AC2FAE7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1447100-97ED-4C2F-B64E-98E6AC2FAE7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1447100-97ED-4C2F-B64E-98E6AC2FAE7D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F8C70BC6-AF61-44B6-AB5E-1876771A6531}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F8C70BC6-AF61-44B6-AB5E-1876771A6531}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F8C70BC6-AF61-44B6-AB5E-1876771A6531}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F8C70BC6-AF61-44B6-AB5E-1876771A6531}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC5D19CE-C50E-4FA1-B592-136555B73634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC5D19CE-C50E-4FA1-B592-136555B73634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC5D19CE-C50E-4FA1-B592-136555B73634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC5D19CE-C50E-4FA1-B592-136555B73634}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
