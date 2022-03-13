@@ -1,15 +1,19 @@
-﻿using Discord;
+﻿using Discord.Net;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using DiscordTTS.Commands;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
-
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using Microsoft;
+using System.Net.Http;
+using System.Linq;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using DiscordTTS.Commands;
+using System.Text.Json;
 namespace DiscordTTS
 {
     public class DiscordBot
@@ -25,8 +29,8 @@ namespace DiscordTTS
             _client = new DiscordSocketClient();
             _settings = savedSettings;
             _users = userList;
-            _commandService = new CommandService();
-            _commandHandler = new CommandHandler(_client, _commandService, _settings);
+            //_commandService = new CommandService();
+            //_commandHandler = new CommandHandler(_client, _commandService, _settings);
         }
         ~DiscordBot()
         {
@@ -34,9 +38,10 @@ namespace DiscordTTS
         }
         public async Task CreateBotAsync(string token)
         {
+            var services = ConfigureServices();
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
-            await _commandHandler.InstallCommandsAsync();
+            //await _commandHandler.InstallCommandsAsync();
             _client.Log += LogAsync;
             _client.Ready += Ready;
         }
@@ -72,6 +77,23 @@ namespace DiscordTTS
 
             return Task.CompletedTask;
         }
+        private IServiceProvider ConfigureServices()
+        {
+            return new ServiceCollection()
+                // Base
+                .AddSingleton(_client)
+                .AddSingleton<CommandService>()
+                .AddSingleton<CommandHandler>()
+                // Add additional services here...
+                .BuildServiceProvider();
+        }
 
+        private IConfiguration BuildConfig()
+        {
+            return new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config.json")
+                .Build();
+        }
     }
 }

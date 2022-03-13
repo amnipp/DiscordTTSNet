@@ -14,12 +14,15 @@ namespace DiscordTTS.Commands
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
         private readonly Settings _settings;
+        private readonly IServiceProvider _services;
         // Retrieve client and CommandService instance via ctor
-        public CommandHandler(DiscordSocketClient client, CommandService commands, Settings settings)
+        public CommandHandler(DiscordSocketClient client, CommandService commands,
+            Settings settings, IServiceProvider services)
         {
             _commands = commands;
             _client = client;
             _settings = settings;
+            _services = services;
         }
 
         public async Task InstallCommandsAsync()
